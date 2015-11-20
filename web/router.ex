@@ -20,7 +20,9 @@ defmodule Router.Router do
   end
 
   # Other scopes may use custom stacks.
-  # scope "/api", Router do
-  #   pipe_through :api
-  # end
+  scope "/api", Router do
+    pipe_through :api
+
+    post("/log", LoggerController, :log)
+  end
 end

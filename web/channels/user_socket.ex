@@ -2,7 +2,7 @@ defmodule Router.UserSocket do
   use Phoenix.Socket
 
   ## Channels
-  # channel "rooms:*", Router.RoomChannel
+  channel "sensors:*", Router.SensorChannel
 
   ## Transports
   transport :websocket, Phoenix.Transports.WebSocket
