@@ -12,7 +12,7 @@
   "plug": {:hex, :plug, "1.0.2"},
   "poison": {:hex, :poison, "1.5.0"},
   "poolboy": {:hex, :poolboy, "1.5.1"},
-  "pooler": {:git, "https://github.com/seth/pooler.git", "e4dd9515a6a5bcf35266f07328f3051956fa4b90", []},
+  "pooler": {:git, "https://github.com/seth/pooler.git", "02c8ac9559f04be090507bb9d30d66a0baa5e0a6", []},
   "postgrex": {:hex, :postgrex, "0.9.1"},
   "quickrand": {:hex, :quickrand, "1.5.0"},
   "ranch": {:hex, :ranch, "1.2.0"},

@@ -40,3 +40,7 @@ config :router, Router.Repo,
   database: "router_dev",
   hostname: "localhost",
   pool_size: 10
+
+config :cqerl,
+  cassandra_nodes: [{{192, 168, 1, 20}, 9042}],
+  keyspace: "magpie"
