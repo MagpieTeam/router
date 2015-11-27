@@ -14,7 +14,7 @@ defmodule Router.LoggerController do
     # }
     measurements = params["measurements"]
     case Router.DataAccess.Measurement.put(measurements) do
-      {:ok, measurements} -> 
+      {:ok, measurements} ->
         broadcast_measurements(measurements)
         json(conn, nil)
       {:error, reason} ->

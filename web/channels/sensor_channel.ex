@@ -4,5 +4,5 @@ defmodule Router.SensorChannel do
   def join("sensors:" <> _sensor_id, _message, socket) do
     {:ok, socket}
   end
-  
+
 end
