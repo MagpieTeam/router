@@ -1,12 +1,12 @@
-defmodule Router.DataAccess.Measurements do
-  import Router.DataAccess.Utils
+defmodule Router.DataAccess.Measurement do
+  import Router.DataAccess.Util
 
-  def put(measurements) do    
+  def put(measurements) do
     {:ok, client} = :cqerl.new_client()
     query = cql_query(statement: "INSERT INTO magpie.measurements (sensor_id, date, timestamp, metadata, value) VALUES (?, ?, ?, ?, ?);")
     queries = for %{"sensor_id" => sensor_id, "timestamp" => timestamp, "metadata" => metadata, "value" => value} <- measurements do
       timestamp = String.to_integer(timestamp)
-      date = 
+      date =
         timestamp
         |> Kernel.*(1000)
         |> Timex.Date.from(:us)
