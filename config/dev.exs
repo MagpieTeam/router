@@ -42,5 +42,5 @@ config :router, Router.Repo,
   pool_size: 10
 
 config :cqerl,
-  cassandra_nodes: [{{192, 168, 1, 20}, 9042}],
+  cassandra_nodes: [{{192, 168, 33, 10}, 9042}],
   keyspace: "magpie"
