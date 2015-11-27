@@ -74,19 +74,25 @@ logger_channel.join()
   .receive("ok", resp => { console.log("Joined logger successfully", resp) })
   .receive("error", resp => { console.log("Unable to join", resp) })
 
-let log = {
+var timestamp = 1448221996000;
+var value = 1;
+
+setInterval(function() {
+  timestamp += 1000;
+  value += 1;
+
+  let log = {
   "measurements": [
     {
-      "sensor_id": "925edb2b-2962-46b8-b24d-9395d832f374", 
-      "timestamp": "1448221996000",
-      "value": "-100000",
+      "sensor_id": "e3e3b1b8-02de-4986-9900-5f8f21eff3e0", 
+      "timestamp": timestamp.toString(),
+      "value": value.toString(),
       "metadata": "AAAF"
     }  
   ]   
-}   
+} 
 
-setTimeout(function() {
     logger_channel.push("new_log", log)
-}, 5000);
+}, 250);
 
 export default socket
