@@ -7,15 +7,14 @@ defmodule Router.LoggerChannel do
   
   def handle_in("new_log", msg, socket) do
     measurements = msg["measurements"]
-    broadcast_measurements(measurements)
-    {:reply, :ok, socket}
-    #case Router.DataAccess.Measurement.put(measurements) do
-    #  {:ok, measurements} -> 
-    #    broadcast_measurements(measurements)
-    #    {:reply, :ok, socket}
-    #  {:error, reason} ->
-    #    {:reply, {:error, reason}, socket}
-    #end
+
+    case Router.DataAccess.Measurement.put(measurements) do
+     {:ok, measurements} ->
+       broadcast_measurements(measurements)
+       {:reply, :ok, socket}
+     {:error, reason} ->
+       {:reply, {:error, reason}, socket}
+    end
   end
 
   defp broadcast_measurements(measurements) do

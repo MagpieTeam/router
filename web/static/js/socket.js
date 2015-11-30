@@ -93,6 +93,6 @@ setInterval(function() {
 } 
 
     logger_channel.push("new_log", log)
-}, 250);
+}, 100);
 
 export default socket
