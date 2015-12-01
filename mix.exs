@@ -38,7 +38,8 @@ defmodule Router.Mixfile do
       {:phoenix_live_reload, "~> 1.0", only: :dev},
       {:cowboy, "~> 1.0"},
       {:cqerl, github: "matehat/cqerl", tag: "v0.8.0"},
-      {:timex, "~> 1.0.0-rc2"}
+      {:timex, "~> 1.0.0-rc2"},
+      {:magpie, github: "magpieteam/magpie"}
     ]
   end
 
