@@ -8,7 +8,7 @@ defmodule Router.LoggerChannel do
   def handle_in("new_log", msg, socket) do
     measurements = msg["measurements"]
 
-    case Router.DataAccess.Measurement.put(measurements) do
+    case Magpie.DataAccess.Measurement.put(measurements) do
      {:ok, measurements} ->
        broadcast_measurements(measurements)
        {:reply, :ok, socket}
@@ -24,5 +24,4 @@ defmodule Router.LoggerChannel do
       end 
     )
   end
-
 end

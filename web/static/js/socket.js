@@ -84,7 +84,7 @@ setInterval(function() {
   let log = {
   "measurements": [
     {
-      "sensor_id": "e3e3b1b8-02de-4986-9900-5f8f21eff3e0", 
+      "sensor_id": "dac55040-0112-41e2-ba3a-08a63e1d838d", 
       "timestamp": timestamp.toString(),
       "value": value.toString(),
       "metadata": "AAAF"
