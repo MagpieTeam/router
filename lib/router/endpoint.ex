@@ -1,7 +1,8 @@
 defmodule Router.Endpoint do
   use Phoenix.Endpoint, otp_app: :router
 
-  socket "/socket", Router.UserSocket
+  socket "/sockets/logger", Router.LoggerSocket
+  socket "/sockets/user", Router.UserSocket
 
   # Serve at "/" the static files from "priv/static" directory.
   #

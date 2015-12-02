@@ -2,6 +2,7 @@ defmodule Router.LoggerChannel do
   use Router.Web, :channel
 
   def join("loggers:" <> _logger_id, _message, socket) do
+    # TODO: check that the logger is authorized to log currently
     {:ok, socket}
   end
   
