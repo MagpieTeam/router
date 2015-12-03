@@ -2,13 +2,14 @@ defmodule Router.LoggerChannel do
   use Router.Web, :channel
 
   def join("loggers:" <> _logger_id, _message, socket) do
+    # TODO: check that the logger is authorized to log currently
     {:ok, socket}
   end
   
   def handle_in("new_log", msg, socket) do
     measurements = msg["measurements"]
 
-    case Router.DataAccess.Measurement.put(measurements) do
+    case Magpie.DataAccess.Measurement.put(measurements) do
      {:ok, measurements} ->
        broadcast_measurements(measurements)
        {:reply, :ok, socket}
@@ -24,5 +25,4 @@ defmodule Router.LoggerChannel do
       end 
     )
   end
-
 end

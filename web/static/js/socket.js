@@ -5,11 +5,11 @@
 // and connect at the socket path in "lib/my_app/endpoint.ex":
 import {Socket} from "deps/phoenix/web/static/js/phoenix"
 
-// let socket = new Socket("/socket", {params: {token: window.userToken}})
-
-let socket = new Socket("/socket", {
-    logger: ((kind, msg, data) => { console.log(`${kind}: ${msg}`, data) })
+let socket = new Socket("/sockets/logger", {
+    logger: ((kind, msg, data) => { console.log(`${kind}: ${msg}`, data) }),
+    params: {"id": "f2a60d68-e4f1-4cf7-856c-bbc2a9b38639", "password": "1234"}
 })
+
 
 // When you connect, you'll often need to authenticate the client.
 // For example, imagine you have an authentication plug, `MyAuth`,
@@ -57,22 +57,13 @@ let socket = new Socket("/socket", {
 
 socket.connect()
 
-// Now that you are connected, you can join channels with a topic:
-let sensor_channel = socket.channel("sensors:925edb2b-2962-46b8-b24d-9395d832f374", {})
 
-sensor_channel.on("new_log", msg => {
-    console.log(msg)
-})
-
-sensor_channel.join()
-  .receive("ok", resp => { console.log("Joined successfully", resp) })
-  .receive("error", resp => { console.log("Unable to join", resp) })
-
-let logger_channel = socket.channel("loggers:1", {})
+let logger_channel = socket.channel("loggers:f2a60d68-e4f1-4cf7-856c-bbc2a9b38639", {})
 
 logger_channel.join()
   .receive("ok", resp => { console.log("Joined logger successfully", resp) })
   .receive("error", resp => { console.log("Unable to join", resp) })
+
 
 var timestamp = 1448221996000;
 var value = 1;
@@ -84,7 +75,7 @@ setInterval(function() {
   let log = {
   "measurements": [
     {
-      "sensor_id": "e3e3b1b8-02de-4986-9900-5f8f21eff3e0", 
+      "sensor_id": "dac55040-0112-41e2-ba3a-08a63e1d838d", 
       "timestamp": timestamp.toString(),
       "value": value.toString(),
       "metadata": "AAAF"
