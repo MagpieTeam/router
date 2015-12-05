@@ -7,9 +7,10 @@ defmodule Router.LoggerSocket do
 
   def connect(%{"id" => id, "password" => password} = params, socket) do
     {:ok, logger} = Magpie.DataAccess.Logger.get(id)
-    case Magpie.Password.verify_password(password, logger[:password]) do
-      true -> {:ok, assign(socket, :id, logger[:id])}
-      _ -> :error
+    if password == logger[:password] do
+      {:ok, assign(socket, :id, logger[:id])}
+    else
+      :error
     end
   end
 
