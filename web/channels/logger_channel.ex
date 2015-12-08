@@ -1,8 +1,12 @@
 defmodule Router.LoggerChannel do
   use Router.Web, :channel
 
-  def join("loggers:" <> _logger_id, _message, socket) do
+  def join("loggers:" <> logger_id, _message, socket) do
     # TODO: check that the logger is authorized to log currently
+
+    sensors = Magpie.DataAccess.Sensor.get(logger_id)
+    Enum.each(sensors, fn (s) -> Router.Aggregator.start_link(to_string(s[:id])) end)
+
     {:ok, socket}
   end
   
