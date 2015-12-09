@@ -26,6 +26,8 @@
       <%= @inner %>
 
     </div> <!-- /container -->
+    <script src="https://code.jquery.com/jquery-2.1.4.js"></script>
     <script src="<%= static_path(@conn, "/js/app.js") %>"></script>
+    <%= render_existing(view_module(@conn), "scripts." <> Phoenix.Controller.view_template(@conn), assigns) %>
   </body>
 </html>

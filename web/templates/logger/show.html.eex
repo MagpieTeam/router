@@ -1,0 +1,21 @@
+<div class="pull-right">
+  <button id="run" class="btn btn-success">Run</button>
+  <button id="stop" class="btn btn-danger">Stop</button>
+</div>
+
+<div class="panel panel-default">
+  <div class="panel-heading"><h1><%= @logger[:name] %></h1></div>   
+  <h4>Sensors:</h4>
+  <table class="table">
+    <thead>
+      <th>Name</th>
+      <th>Unit of measure</th>
+  <%= for sensor <- @sensors do %>
+    <tr class="sensor" id="<%= sensor[:id] %>">
+      <td><%= sensor[:name] %></td>
+      <td><%= sensor[:unit_of_measure] %></td>
+    </tr>
+  <% end %>
+  </table>
+  </ul>
+</div>
