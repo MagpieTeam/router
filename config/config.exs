@@ -7,7 +7,7 @@ use Mix.Config
 
 # Configures the endpoint
 config :router, Router.Endpoint,
-  url: [host: "localhost"],
+  url: [host: System.get_env("IP")],
   root: Path.dirname(__DIR__),
   secret_key_base: "MvqGIleGGtQ5AIW3yM4jGeTZkjHH/tZGZKNwTsKZoRI79nKqHkF0dwAxopu3qXc/",
   render_errors: [accepts: ~w(html json)],

@@ -23,7 +23,7 @@ defmodule Router.Router do
   # Other scopes may use custom stacks.
   scope "/api", Router do
     pipe_through :api
-
+    get("/nodes", NodeController, :index)
     post("/log", LoggerController, :log)
   end
 end
