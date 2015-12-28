@@ -20,7 +20,7 @@ defmodule Router.Aggregator do
       |> Timex.Date.from(:us)
       |> Timex.Date.set([second: 0, ms: 0, validate: false])
 
-    value = String.to_float(log.value)
+    {value, _} = Float.parse(log.value)
     state = case Map.get(state, minute) do
       nil ->
         acc = create_accumulator(value)
