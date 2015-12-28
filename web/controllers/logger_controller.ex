@@ -19,22 +19,13 @@ defmodule Router.LoggerController do
   def log(conn, params) do
     measurements = params["measurements"]
     
-    case Magpie.DataAccess.Measurement.put(measurements) do
-      {:ok, measurements} ->
-        broadcast_measurements(measurements)
+    case Router.Logger.handle_log(measurements) do
+      :ok ->
         json(conn, nil)
       {:error, reason} ->
         conn
         |> Plug.Conn.put_status(500)
         |> json(reason)
     end
-  end
-
-  defp broadcast_measurements(measurements) do
-    Enum.each(measurements, fn (m) -> 
-      Router.Endpoint.broadcast("sensors:" <> m["sensor_id"], "new_log", 
-        %{sensor_id: m["sensor_id"], timestamp: m["timestamp"], value: m["value"], metadata: m["metadata"]})
-      end 
-    )
   end
 end
