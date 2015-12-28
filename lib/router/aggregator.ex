@@ -8,7 +8,6 @@ defmodule Router.Aggregator do
 
   def init(sensor_id) do
     pid = self()
-    IO.inspect({"pid", pid})
     Phoenix.PubSub.subscribe(Router.PubSub, pid, "sensors:" <> sensor_id)
     {:ok, %{sensor_id: sensor_id}}
   end

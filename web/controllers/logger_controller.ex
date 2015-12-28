@@ -16,16 +16,37 @@ defmodule Router.LoggerController do
     |> render("show.html")
   end
 
+  def start(conn, params) do
+    logger_id = params["logger_id"]
+    {:ok, logger_pid} = Router.HttpLogger.start(logger_id)
+    token = Phoenix.Token.sign(Router.Endpoint, "logger", logger_pid)
+    json(conn, %{token: token})
+  end
+
+  def stop(conn, params) do
+    token = params["token"]
+    {:ok, logger_pid} = Phoenix.Token.verify(Router.Endpoint, "logger", token)
+    Router.HttpLogger.stop(logger_pid)
+    json(conn, nil)
+  end
+
   def log(conn, params) do
     measurements = params["measurements"]
-    
-    case Router.Logger.handle_log(measurements) do
-      :ok ->
-        json(conn, nil)
-      {:error, reason} ->
+    token = params["token"]
+    case Phoenix.Token.verify(Router.Endpoint, "logger", token) do
+      {:ok, logger_pid} ->
+        case Router.HttpLogger.log(logger_pid, measurements) do
+          :ok ->
+            json(conn, nil)
+          {:error, reason} ->
+            conn
+            |> Plug.Conn.put_status(500)
+            |> json(reason)
+        end
+      {:error, :invalid} ->
         conn
-        |> Plug.Conn.put_status(500)
-        |> json(reason)
-    end
+        |> Plug.Conn.put_status(400)
+        |> json("invalid token")
+    end    
   end
 end

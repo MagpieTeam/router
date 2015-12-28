@@ -24,6 +24,9 @@ defmodule Router.Router do
   scope "/api", Router do
     pipe_through :api
     get("/nodes", NodeController, :index)
+
+    post("/start", LoggerController, :start)
+    post("/stop", LoggerController, :stop)
     post("/log", LoggerController, :log)
   end
 end
