@@ -14,6 +14,7 @@ defmodule Router do
       # Here you could define other workers and supervisors as children
       # worker(Router.Worker, [arg1, arg2, arg3]),
       worker(Router.Presence, [[name: Router.Presence]]),
+      worker(Router.LoadRegulator, [[name: Router.LoadRegulator]])
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
