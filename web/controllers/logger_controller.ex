@@ -18,7 +18,7 @@ defmodule Router.LoggerController do
 
   def start(conn, params) do
     logger_id = params["logger_id"]
-    case Router.LoadBalancer.permit?() do
+    case Router.LoadRegulator.permit?() do
       true ->
         {:ok, logger_pid} = Router.HttpLogger.start(logger_id)
         token = Phoenix.Token.sign(Router.Endpoint, "logger", logger_pid)
@@ -26,7 +26,7 @@ defmodule Router.LoggerController do
       false ->
         conn
         |> Plug.Conn.put_status(503)
-        |> json("request denied due to overload protection")
+        |> json("request denied by load regulator")
     end
   end
 

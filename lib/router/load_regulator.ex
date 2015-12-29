@@ -1,4 +1,4 @@
-defmodule Router.LoadBalancer do
+defmodule Router.LoadRegulator do
 
   def permit?() do
     true
