@@ -56,4 +56,23 @@ defmodule Router.LoggerController do
         |> json("invalid token")
     end    
   end
+
+  def configure(conn, params) do
+    logger_id = params["logger_id"]
+    new_sensors = params["sensors"]
+    {:ok, logger} = Magpie.DataAccess.Logger.get(logger_id)
+    sensors = Magpie.DataAccess.Sensor.get(logger_id)
+
+    passive_sensors = Enum.reduce(sensors, [], fn(s, acc) -> 
+      case Enum.find(new_sensors, nil, fn(new_sensor) -> new_sensor["id"] == s[:id] end) do
+        nil -> [to_string(s[:id]) | acc]
+        _ -> acc
+      end
+    end)
+
+    Magpie.DataAccess.Sensor.set_passive(passive_sensors, logger_id)
+    Magpie.DataAccess.Sensor.put(new_sensors, logger_id)
+
+    json(conn, nil)
+  end
 end

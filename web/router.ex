@@ -28,5 +28,6 @@ defmodule Router.Router do
     post("/start", LoggerController, :start)
     post("/stop", LoggerController, :stop)
     post("/log", LoggerController, :log)
+    post("/configure", LoggerController, :configure)
   end
 end
