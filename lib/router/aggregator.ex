@@ -13,10 +13,21 @@ defmodule Router.Aggregator do
   end
 
   def handle_info(%Broadcast{event: "new_log", payload: log}, state) do
-    # turn this into a function that returns {:ok, state} or {:save, state, minutes, hours} or some such
-    state = accumulate(state, log)
-
-    {:noreply, state}
+    case accumulate(state, log) do
+      %{minutes: %{done: m}, hours: %{done: h}} = state ->
+        IO.puts("Minute and hour done: #{inspect m}, #{inspect h}")
+        Magpie.DataAccess.Measurement.put_minute(state.sensor_id, m.timestamp, m.avg, m.min, m.max, m.count)
+        minutes = Map.delete(state.minutes, :done)
+        Magpie.DataAccess.Measurement.put_hour(state.sensor_id, h.timestamp, h.avg, h.min, h.max, h.count)
+        hours = Map.delete(state.hours, :done)
+        {:noreply, %{state | minutes: minutes, hours: hours}}
+      %{minutes: %{done: m}} = state ->
+        IO.puts("Minute done: #{inspect m}")
+        Magpie.DataAccess.Measurement.put_minute(state.sensor_id, m.timestamp, m.avg, m.min, m.max, m.count)
+        minutes = Map.delete(state.minutes, :done)
+        {:noreply, %{state | minutes: minutes}}
+      state -> {:noreply, state}
+    end
   end
 
   def accumulate(state, log) do
@@ -32,7 +43,7 @@ defmodule Router.Aggregator do
     {value, _} = Float.parse(log.value)
     minutes = case Map.get(state.minutes, minute) do
       nil ->
-        acc = create_accumulator(value)
+        acc = create_accumulator(minute, value)
         minutes = Map.put(state.minutes, minute, acc)
         # write the accumulator from last minute to DB
         last_minute = Timex.Date.shift(minute, mins: -1)
@@ -41,8 +52,8 @@ defmodule Router.Aggregator do
             minutes
           acc ->
             avg = acc.sum / acc.count
-            Magpie.DataAccess.Measurement.put_minute(state.sensor_id, last_minute, avg, acc.min, acc.max, acc.count)
-            Map.delete(state.minutes, last_minute)
+            minutes = Map.put(state.minutes, :done, %{acc | avg: avg})
+            Map.delete(minutes, last_minute)
         end
       acc ->
         new_acc = add_to_accumulator(acc, value)
@@ -51,7 +62,7 @@ defmodule Router.Aggregator do
 
     hours = case Map.get(state.hours, hour) do
       nil ->
-        acc = create_accumulator(value)
+        acc = create_accumulator(hour, value)
         hours = Map.put(state.hours, hour, acc)
         last_hour = Timex.Date.shift(hour, hours: -1)
         case Map.get(state.hours, last_hour) do
@@ -59,8 +70,8 @@ defmodule Router.Aggregator do
             hours
           acc ->
             avg = acc.sum / acc.count
-            Magpie.DataAccess.Measurement.put_hour(state.sensor_id, last_hour, avg, acc.min, acc.max, acc.count)
-            Map.delete(state.hours, last_hour)
+            hours = Map.put(state.hours, :done, %{acc | avg: avg})
+            Map.delete(hours, last_hour)
         end
       acc ->
         new_acc = add_to_accumulator(acc, value)
@@ -70,12 +81,12 @@ defmodule Router.Aggregator do
     %{state | minutes: minutes, hours: hours}
   end
 
-  defp create_accumulator(value) do
-    %{count: 1, sum: value, min: value, max: value}
+  defp create_accumulator(timestamp, value) do
+    %{timestamp: timestamp, count: 1, sum: value, min: value, max: value, avg: 0}
   end
 
   defp add_to_accumulator(acc, value) do
-    %{
+    %{acc |
       count: acc.count + 1,
       sum: acc.sum + value,
       min: min(acc.min, value),
