@@ -20,7 +20,7 @@ defmodule Router.HttpLogger do
     :ok = Router.Presence.register(logger_id, self())
     sensors = Magpie.DataAccess.Sensor.get(logger_id)
     Enum.each(sensors, fn (s) -> Router.Aggregator.start_link(to_string(s[:id])) end)
-
+    # consider using :erlang.send_after instead to avoid overhead of extra process, see http://www.erlang.org/doc/efficiency_guide/commoncaveats.html#id56802
     :timer.send_interval(@timeout, :timeout?)
     {:ok, %{last_active: Date.now()}}
   end

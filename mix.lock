@@ -11,7 +11,7 @@
   "hackney": {:hex, :hackney, "1.4.7"},
   "idna": {:hex, :idna, "1.0.2"},
   "lz4": {:git, "https://github.com/szktty/erlang-lz4.git", "30878eafeff35939052c2cafe17d21c95029d3a1", []},
-  "magpie": {:git, "https://github.com/magpieteam/magpie.git", "f646ea92853ea0f42d0dd01063b23cc74f8968a2", [branch: "measurements"]},
+  "magpie": {:git, "https://github.com/magpieteam/magpie.git", "c7bb126ffc87a0f094fdc3a1269b7f0fa5b4d3eb", [branch: "measurements"]},
   "mimerl": {:hex, :mimerl, "1.0.2"},
   "phoenix": {:hex, :phoenix, "1.0.4"},
   "phoenix_ecto": {:hex, :phoenix_ecto, "1.2.0"},
