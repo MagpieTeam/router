@@ -19,7 +19,7 @@ defmodule Router.Mixfile do
   def application do
     [mod: {Router, []},
      applications: [:phoenix, :phoenix_html, :cowboy, :logger,
-                    :phoenix_ecto, :postgrex, :cqerl]]
+                    :phoenix_ecto, :postgrex, :cqerl, :os_mon]]
   end
 
   # Specifies which paths to compile per environment.
