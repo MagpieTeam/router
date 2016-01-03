@@ -19,7 +19,7 @@ defmodule Router.Presence do
   def connect() do
     # TODO: connect to nodes specified in config
     # except your own node name
-    [:"n1@euron", :"n2@euron", :"n3@euron"]
+    Application.get_env(:router, :nodes)
     |> Enum.each(fn(n) -> Node.connect(n) end)
   end
 
@@ -27,8 +27,10 @@ defmodule Router.Presence do
     :ets.new(@loggers, [:named_table, :set, :protected])
     :ets.new(@nodes, [:named_table, :set, :protected])
 
-    Router.Endpoint.subscribe(self(), "presence:gossip")
     :ok = :net_kernel.monitor_nodes(true)
+    :ok = connect()
+    Router.Endpoint.subscribe(self(), "presence:gossip")
+
     # TODO: join the cluster here?
     {:ok, %{node: Node.self(), endpoint_ip: Router.Endpoint.config(:url)[:host]}}
   end
