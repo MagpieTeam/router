@@ -26,7 +26,6 @@ defmodule Router.HttpLogger do
   end
 
   def handle_call({:log, measurements}, _from, state) do
-    IO.puts("Logging #{inspect measurements}")
     result = Router.Logger.handle_log(measurements)
 
     {:reply, result, %{last_active: Date.now()}}

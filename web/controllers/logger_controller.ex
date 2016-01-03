@@ -18,7 +18,8 @@ defmodule Router.LoggerController do
 
   def start(conn, params) do
     logger_id = params["logger_id"]
-    case Router.LoadRegulator.permit?() do
+    sensors = Magpie.DataAccess.Sensor.get(logger_id) |> Enum.count()
+    case Router.LoadRegulator.permit?(sensors) do
       true ->
         {:ok, logger_pid} = Router.HttpLogger.start(logger_id)
         token = Phoenix.Token.sign(Router.Endpoint, "logger", logger_pid)
@@ -72,6 +73,8 @@ defmodule Router.LoggerController do
 
     Magpie.DataAccess.Sensor.set_passive(passive_sensors, logger_id)
     Magpie.DataAccess.Sensor.put(new_sensors, logger_id)
+
+    # TODO: send kill message to presence
 
     json(conn, nil)
   end
