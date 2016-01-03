@@ -56,10 +56,6 @@ config :logger, level: :info
 #     config :router, Router.Endpoint, server: true
 #
 
-config :cqerl,
-  cassandra_nodes: [{{192, 168, 33, 10}, 9042}],
-  keyspace: "magpie"
-
 # Finally import the config/prod.secret.exs
 # which should be versioned separately.
 import_config "prod.secret.exs"
