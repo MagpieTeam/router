@@ -28,12 +28,21 @@ defmodule Router.Presence do
     :ets.new(@nodes, [:named_table, :set, :protected])
 
     :ok = :net_kernel.monitor_nodes(true)
-    #:ok = connect()
+    :ok = connect()
     Router.Endpoint.subscribe(self(), "presence:gossip")
 
-    # TODO: join the cluster here?
-    {:ok, %{node: Node.self(), endpoint_ip: Router.Endpoint.config(:url)[:host]}}
+    node = Node.self()
+    ip = Router.Endpoint.config(:url)[:host]
+    port_conf = Router.Endpoint.config(:http)[:port]
+    port = to_port(port_conf)
+    endpoint_ip = "#{ip}:#{port}"
+    :ets.insert(@nodes, {node, endpoint_ip})
+    
+    {:ok, %{node: node, endpoint_ip: endpoint_ip}}
   end
+
+  defp to_port(port) when is_binary(port), do: port
+  defp to_port({:system, env_var}), do: to_port(System.get_env(env_var))
 
   def handle_call({:register, logger_id, pid} = msg, _from, %{node: node} = state) do
     IO.puts("Got loggerup #{inspect msg}")
