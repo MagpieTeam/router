@@ -28,7 +28,7 @@ defmodule Router.Presence do
     :ets.new(@nodes, [:named_table, :set, :protected])
 
     :ok = :net_kernel.monitor_nodes(true)
-    :ok = connect()
+    #:ok = connect()
     Router.Endpoint.subscribe(self(), "presence:gossip")
 
     # TODO: join the cluster here?

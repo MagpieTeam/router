@@ -9,8 +9,6 @@ defmodule Router do
     children = [
       # Start the endpoint when the application starts
       supervisor(Router.Endpoint, []),
-      # Start the Ecto repository
-      worker(Router.Repo, []),
       # Here you could define other workers and supervisors as children
       # worker(Router.Worker, [arg1, arg2, arg3]),
       worker(Router.Presence, [[name: Router.Presence]]),
