@@ -5,7 +5,7 @@ defmodule Router.UserSocket do
   channel "sensors:*", Router.SensorChannel
 
   ## Transports
-  transport :websocket, Phoenix.Transports.WebSocket
+  transport :websocket, Phoenix.Transports.WebSocket, check_origin: false
   # transport :longpoll, Phoenix.Transports.LongPoll
 
   # Socket params are passed from the client and can
