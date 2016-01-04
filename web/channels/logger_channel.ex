@@ -2,10 +2,11 @@ defmodule Router.LoggerChannel do
   use Router.Web, :channel
 
   def join("loggers:" <> logger_id, _message, socket) do
-    case Router.LoadRegulator.permit?() do
+    sensors = Magpie.DataAccess.Sensor.get(logger_id)
+    sensors_no = Enum.count(sensors)
+    case Router.LoadRegulator.permit?(sensors_no) do
       true ->
         :ok = Router.Presence.register(logger_id, self())
-        sensors = Magpie.DataAccess.Sensor.get(logger_id)
         Enum.each(sensors, fn (s) -> Router.Aggregator.start_link(to_string(s[:id])) end)
         {:ok, socket}
       false ->
