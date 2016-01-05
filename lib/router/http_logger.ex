@@ -36,7 +36,6 @@ defmodule Router.HttpLogger do
   end
   
   def handle_info(:timeout?, %{last_active: last_active} = state) do
-    IO.puts("got timeout?")
     kill_at = Date.add(last_active, Time.to_timestamp(2 * @timeout, :msecs))
 
     case Date.compare(Date.now(), kill_at)  do
