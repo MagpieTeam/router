@@ -3,7 +3,7 @@ defmodule Router.LoadRegulator do
   require Logger
 
   @max_tokens 500
-  @refill_interval 5000
+  @refill_interval 1000
   @max_refill_amount 500
   @normal_load 0.3
   @max_load 0.7
