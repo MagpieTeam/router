@@ -34,7 +34,7 @@ defmodule Router.LoadRegulator do
   end
 
   def handle_info(:refill, %{tokens: tokens_now} = state) do
-    load = :cpu_sup.avg1() / 256 / (:erlang.system_info(:schedulers_online) / 2)
+    load = (:cpu_sup.avg1() / 256 / (:erlang.system_info(:schedulers_online) / 2)) * 10
     Logger.info("Load: #{load}")
     new_tokens = calculate_tokens(load, state.slope, state.y_intercept)
     Logger.debug("New tokens: #{new_tokens}")
