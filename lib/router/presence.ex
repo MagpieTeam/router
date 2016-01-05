@@ -1,5 +1,6 @@
 defmodule Router.Presence do
   use GenServer
+  require Logger
 
   alias Phoenix.Socket.Broadcast
 
