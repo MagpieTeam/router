@@ -22,7 +22,7 @@ defmodule Router.HttpLogger do
     Enum.each(sensors, fn (s) -> Router.Aggregator.start_link(to_string(s[:id])) end)
     # consider using :erlang.send_after instead to avoid overhead of extra process, see http://www.erlang.org/doc/efficiency_guide/commoncaveats.html#id56802
     :timer.send_interval(@timeout, :timeout?)
-    {:ok, %{last_active: Date.now()}}
+    {:ok, %{last_active: Date.now(), logger_id: logger_id}}
   end
 
   def handle_call({:log, measurements}, _from, state) do
@@ -35,12 +35,14 @@ defmodule Router.HttpLogger do
     {:stop, {:shutdown, :left}, :ok, state}
   end
   
-  def handle_info(:timeout?, %{last_active: last_active} = state) do
+  def handle_info(:timeout?, %{last_active: last_active, logger_id: logger_id} = state) do
     kill_at = Date.add(last_active, Time.to_timestamp(2 * @timeout, :msecs))
 
     case Date.compare(Date.now(), kill_at)  do
       -1 -> {:noreply, state}
-      _ -> {:stop, {:shutdown, :timeout}, state}
+      _ -> 
+        Logger.info("TIMEOUT: Logger: #{logger_id}")
+        {:stop, {:shutdown, :timeout}, state}
     end
   end
 end
