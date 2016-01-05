@@ -1,6 +1,7 @@
 defmodule Router.HttpLogger do
   use GenServer
   use Timex
+  require Logger
 
   @timeout 30000
 
