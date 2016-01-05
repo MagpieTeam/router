@@ -15,14 +15,12 @@ defmodule Router.Aggregator do
   def handle_info(%Broadcast{event: "new_log", payload: log}, state) do
     case accumulate(state, log) do
       %{minutes: %{done: m}, hours: %{done: h}} = state ->
-        IO.puts("Minute and hour done: #{inspect m}, #{inspect h}")
         Magpie.DataAccess.Measurement.put_minute(state.sensor_id, m.timestamp, m.avg, m.min, m.max, m.count)
         minutes = Map.delete(state.minutes, :done)
         Magpie.DataAccess.Measurement.put_hour(state.sensor_id, h.timestamp, h.avg, h.min, h.max, h.count)
         hours = Map.delete(state.hours, :done)
         {:noreply, %{state | minutes: minutes, hours: hours}}
       %{minutes: %{done: m}} = state ->
-        IO.puts("Minute done: #{inspect m}")
         Magpie.DataAccess.Measurement.put_minute(state.sensor_id, m.timestamp, m.avg, m.min, m.max, m.count)
         minutes = Map.delete(state.minutes, :done)
         {:noreply, %{state | minutes: minutes}}
