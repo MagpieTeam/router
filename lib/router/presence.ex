@@ -19,8 +19,8 @@ defmodule Router.Presence do
 
   def get_status(logger_id) do
     case :ets.match(@loggers, {logger_id, :_, :"$2", :"$3"}) do
-      [[ node, status ]] -> {logger_id, node, status}
-      _ -> {logger_id, :"", :offline}
+      [[ node, status ]] -> [logger_id, node, status]
+      _ -> [logger_id, :"", :offline]
     end
   end
 

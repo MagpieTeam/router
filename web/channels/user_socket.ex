@@ -3,6 +3,7 @@ defmodule Router.UserSocket do
 
   ## Channels
   channel "sensors:*", Router.SensorChannel
+  channel "loggers:status", Router.LoggerChannel
 
   ## Transports
   transport :websocket, Phoenix.Transports.WebSocket, check_origin: false
