@@ -17,6 +17,13 @@ defmodule Router.Presence do
     GenServer.call(Router.Presence, {:register, logger_id, pid})
   end
 
+  def get_status(logger_id) do
+    case :ets.match(@loggers, {logger_id, :_, :"$2", :"$3"}) do
+      [[ node, status ]] -> {logger_id, node, status}
+      _ -> {logger_id, :"", :offline}
+    end
+  end
+
   def connect() do
     # TODO: connect to nodes specified in config
     # except your own node name
