@@ -1,10 +1,31 @@
-<div class="panel panel-default">
-  <div class="panel-heading">Pick a logger</div>   
-  <ul>
-  <%= for logger <- @loggers do %>
-    <li><a href="/loggers/<%= logger[:id] %>"><%= logger[:name] %></a></li>
-  <% end %>
-  </ul>
+  <div class="col-sm-12 col-md-12">
+  <div class="panel panel-default">
+    <div class="panel-heading col-sm-12 col-md-12"> 
+      <div class="col-sm-4 col-md-4">
+        <h4>Tilgængelige loggere</h4>
+      </div>
+    </div>
+    <table class="table table-striped table-hover table-condensed">
+      <thead>
+        <tr>
+          <th class="hidden-xs">LoggerID</th>
+          <th>Navn</th>
+          <th class="hidden-xs">Token</th>
+        </tr>
+      </thead>
+      <%= for l <- @loggers do %>
+        <tr onclick="window.document.location='/loggers/<%= l[:id] %>';">
+          <td class="hidden-xs">
+            <%= l[:id] %>
+          </td>
+          <td>
+            <%= l[:name] %>
+          </td>
+          <td class="hidden-xs">
+            <%= l[:password] %>
+          </td>
+        </tr>
+      <% end %>
+    </table>
+  </div>
 </div>
-  
-    

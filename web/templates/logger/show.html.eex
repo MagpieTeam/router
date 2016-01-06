@@ -1,21 +1,40 @@
-<div class="pull-right">
-  <button id="run" class="btn btn-success">Run</button>
-  <button id="stop" class="btn btn-danger">Stop</button>
+<div class="col-sm-12 col-md-12 col-xs-12">
+  <div class="text-center col-sm-3 col-md-3 col-xs-12">
+    <h4>Valgt logger: <%= @logger[:name] %></h4>
+  </div>
+  <div class="col-sm-9 col-md-9 col-xs-12">
+    <button id="run" class="btn btn-success col-sm-3 col-md-offset-5 col-sm-offset-5 col-md-3 col-xs-5">Start</button>
+    <button id="stop" class="btn btn-danger col-sm-3 col-md-3 col-xs-5 marginleft marginbottom">Stop</button>
+  </div>
 </div>
-
-<div class="panel panel-default">
-  <div class="panel-heading"><h1><%= @logger[:name] %></h1></div>   
-  <h4>Sensors:</h4>
-  <table class="table">
-    <thead>
-      <th>Name</th>
-      <th>Unit of measure</th>
-  <%= for sensor <- @sensors do %>
-    <tr class="sensor" id="<%= sensor[:id] %>">
-      <td><%= sensor[:name] %></td>
-      <td><%= sensor[:unit_of_measure] %></td>
-    </tr>
-  <% end %>
-  </table>
-  </ul>
+<div class="col-sm-12 col-md-12 col-xs-12">
+  <div class="panel panel-default">
+    <div class="panel-heading col-sm-12 col-md-12 col-xs-12">
+      <div class="col-sm-12 col-md-12 col-xs-12">
+        <h5>Tilgængelige sensore</h5>
+      </div>
+    </div>
+    <table class="table table-striped table-hover table-condensed">
+      <thead>
+        <tr>
+          <th>SensorId</th>
+          <th>Navn</th>
+          <th>Måleenhed</th>
+        </tr>
+      </thead>
+      <%= for s <- @sensors do %>
+      <tr>
+        <td>
+          <%= s[:id] %>
+        </td>
+        <td>
+          <%= s[:name] %>
+        </td>
+        <td>
+          <%= s[:unit_of_measure] %>
+        </td>
+      </tr>
+      <% end %>
+    </table>
+  </div>
 </div>

@@ -1,0 +1,99 @@
+body > nav > div > button.btn.btn-default.navbar-btn.navbar-right {
+	margin-right: 10px;
+}
+body > div.container > div > div:nth-child(2) > div:nth-child(1) > input {
+	margin-top:5px;
+}
+body > div.container > div > div:nth-child(2) > div:nth-child(2) > input {
+	margin-top: 5px;
+}
+
+.sidebar {
+	margin-top: -20px;
+	background-color: #d4ffea;
+	bottom: 0;
+	top: 72px;
+	position: fixed;
+	z-index: 1000;
+	display: block;
+}
+
+.graphsize {
+	width: 100%;
+	height: 400px;
+}
+
+.batchdate {
+	padding-top: 20px;
+}
+
+.form-inline .form-group input {
+	width: 250px;
+}
+
+.margininput {
+	margin-top: 15px;
+}
+
+.marginbottombig {
+	margin-bottom: 40px;
+}
+
+.marginleft {
+	margin-left: 15px;
+}
+
+.marginleftbig {
+	margin-left: 25px;
+}
+
+.marginright {
+	margin-right: 15px;
+}
+
+.marginbottom {
+	margin-bottom: 15px;
+}
+
+.marginminus {
+	margin-left: -15px;
+}
+
+.marginminussmall {
+	margin-left: -1px;
+}
+
+.marginminusbig {
+	margin-left: -35px;
+}
+
+.colorred {
+	background-color: #B40404;
+}
+
+.button {
+    color: #FFFFFF;
+}
+
+.nav.navbar-nav.navbar-right > li a {
+    color: #FFFFFF;
+}
+
+.nav.navbar-nav.navbar-right li p {
+    color: #FFFFFF;
+}
+
+.birdsize {
+	width: 55px;
+	height: 55px;
+	margin-top: -19px;
+}
+	
+
+#bs-example-navbar-collapse-1 > ul > li.dropdown.open > a {
+	background-color: #B40404;
+}
+
+.hiddenRow {
+    padding: 0 !important;
+}

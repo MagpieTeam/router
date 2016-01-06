@@ -7,18 +7,22 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Hello Phoenix!</title>
+    <title>DTU Magpierouter</title>
     <link rel="stylesheet" href="<%= static_path(@conn, "/css/app.css") %>">
   </head>
 
   <body>
-    <div class="container" role="main">
-      <div class="header">
-        <ul class="nav nav-pills pull-right">
-          <li><a href="http://www.phoenixframework.org/docs">Get Started</a></li>
-        </ul>
-        <span class="logo"></span>
+    <nav class="navbar navbar-inverse colorred">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="/loggers"><img alt="brand" src="/images/bird_logo.png" class="birdsize"></a>
+        </div>
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+          <ul class="nav navbar-nav navbar-right">
+          </ul>
+        </div>
       </div>
+    </nav>
 
       <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
       <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
