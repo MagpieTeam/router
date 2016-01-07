@@ -17,11 +17,11 @@ defmodule Router.LoggerController do
   end
 
   def start(conn, params) do
-    logger_id = params["logger_id"]
-    sensors = Magpie.DataAccess.Sensor.get(logger_id) |> Enum.count()
+    {:ok, logger} = Magpie.DataAccess.Logger.get(params["logger_id"])
+    sensors = Magpie.DataAccess.Sensor.get(logger[:id]) |> Enum.count()
     case Router.LoadRegulator.permit?(sensors) do
       true ->
-        {:ok, logger_pid} = Router.HttpLogger.start(logger_id)
+        {:ok, logger_pid} = Router.HttpLogger.start(logger[:id], logger[:name])
         token = Phoenix.Token.sign(Router.Endpoint, "logger", logger_pid)
         json(conn, %{token: token})
       false ->

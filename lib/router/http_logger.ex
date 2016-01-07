@@ -17,8 +17,8 @@ defmodule Router.HttpLogger do
     GenServer.call(logger_pid, {:log, measurements})
   end
 
-  def init(logger_id) do
-    :ok = Router.Presence.register(logger_id, self())
+  def init(logger_id, name) do
+    :ok = Router.Presence.register(logger_id, self(), name)
     sensors = Magpie.DataAccess.Sensor.get(logger_id)
     Enum.each(sensors, fn (s) -> Router.Aggregator.start_link(to_string(s[:id])) end)
     # consider using :erlang.send_after instead to avoid overhead of extra process, see http://www.erlang.org/doc/efficiency_guide/commoncaveats.html#id56802
