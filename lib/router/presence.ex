@@ -15,10 +15,10 @@ defmodule Router.Presence do
     GenServer.call(Router.Presence, {:register, logger_id, pid, name})
   end
 
-  def get_status(logger_id) do
-    case :ets.match(@loggers, {logger_id, :_, :"$1", :"$2"}) do
-      [[node, status]] -> [logger_id, node, status]
-      _ -> [logger_id, :"", :offline]
+  def get_status(logger) do
+    case :ets.match(@loggers, {logger[:id], :_, :"$1", :"$2"}) do
+      [[node, status]] -> [logger_id, logger[:name], node, status]
+      _ -> [logger[:id], logger[:name], :"", :offline]
     end
   end
 

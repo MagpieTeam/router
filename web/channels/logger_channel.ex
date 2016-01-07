@@ -9,8 +9,8 @@ defmodule Router.LoggerChannel do
 
   def handle_info(:status_join, socket) do
     loggers = Magpie.DataAccess.Logger.get()
-    status = Enum.map(loggers, fn(l) ->
-      Router.Presence.get_status(l[:id])
+    status = Enum.map(loggers, fn(logger) ->
+      Router.Presence.get_status(logger)
     end)
     # IO.puts(status)
     push(socket, "new_status", %{status: status})
