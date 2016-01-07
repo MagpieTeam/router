@@ -8,8 +8,6 @@ defmodule Router.Presence do
   @nodes :nodes
 
   def start_link(opts \\ []) do
-    # pass in the name of the local server
-    # connect to other nodes by hand
     GenServer.start_link(__MODULE__, :ok, opts)
   end
 
@@ -18,8 +16,8 @@ defmodule Router.Presence do
   end
 
   def get_status(logger_id) do
-    case :ets.match(@loggers, {logger_id, :_, :"$2", :"$3"}) do
-      [[ node, status ]] -> [logger_id, node, status]
+    case :ets.match(@loggers, {logger_id, :_, :"$1", :"$2"}) do
+      [[node, status]] -> [logger_id, node, status]
       _ -> [logger_id, :"", :offline]
     end
   end
@@ -58,7 +56,7 @@ defmodule Router.Presence do
     true = :ets.insert(@loggers, {logger_id, pid, node, :online})
     # broadcast on gossip and local
     Router.Endpoint.broadcast_from(self(), "presence:gossip", "logger_up", %{id: logger_id, node: node})
-    broadcast = %Broadcast{event: "logger_up", topic: "loggers:status", payload: %{id: logger_id, node: node}}
+    broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [logger_id, node, :online]}}
     Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
     {:reply, :ok, state}
   end
@@ -74,7 +72,7 @@ defmodule Router.Presence do
         :ets.delete(@loggers, logger_id)
         # broadcast on gossip and local
         Router.Endpoint.broadcast_from(self(), "presence:gossip", "logger_down", %{id: logger_id, node: node})
-        broadcast = %Broadcast{event: "logger_down", topic: "loggers:status", payload: %{id: logger_id, node: node}}
+        broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [logger_id, node, :offline]}}
         Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
         Process.demonitor(ref, [:flush])
         {:noreply, state}
@@ -85,7 +83,7 @@ defmodule Router.Presence do
     Logger.debug("Got remote logger_up: #{logger_id} on #{node}")
 
     true = :ets.insert(@loggers, {logger_id, nil, node, :online})
-    broadcast = %Broadcast{event: "logger_up", topic: "loggers:status", payload: %{id: logger_id, node: node}}
+    broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [logger_id, node, :online]}}
     Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
     {:noreply, state}
   end
@@ -94,7 +92,7 @@ defmodule Router.Presence do
     Logger.debug("Got remote logger_down: #{logger_id} on #{node}")
 
     :ets.delete(@loggers, logger_id)
-    broadcast = %Broadcast{event: "logger_down", topic: "loggers:status", payload: %{id: logger_id, node: node}}
+    broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [logger_id, node, :offline]}}
     Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
     {:noreply, state}
   end
@@ -112,41 +110,54 @@ defmodule Router.Presence do
   def handle_info({:nodedown, node} = msg, state) do
     Logger.debug("Got remote node down: #{node}")
 
-    logger_ids = :ets.match(@loggers, {:"$1", :_, node, :online})
-    loggers = Enum.map(logger_ids, fn([ l | _]) -> {l, nil, node, :unknown} end)
+    logger_ids = :ets.match(@loggers, {:"$1", :_, node, :_})
+    loggers = Enum.map(logger_ids, fn([logger_id]) -> {logger_id, nil, node, :unknown} end)
     :ets.insert(@loggers, loggers)
     :ets.delete(@nodes, node)
 
-    broadcast = %Broadcast{event: "loggers_unknown", topic: "loggers:status", payload: %{loggers: logger_ids}}
+    status = Enum.map(logger_ids, fn([logger_id]) -> [logger_id, node, :unknown] end)
+
+    broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: status}}
     Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
     {:noreply, state}
   end
 
-  def handle_cast({:loggers, loggers, remote_node, endpoint_ip}, %{node: node} = state) do
+  def handle_cast({:loggers, loggers, remote_node, endpoint_ip}, state) do
     Logger.debug("Got list of loggers from remote node: #{remote_node}: #{inspect loggers}")
-
-    # delete all for this node, then insert the new ones
-    # the genserver serialises all updates, thus, if a logger comes online on another node
-    # it will either get that message before this one, or after, and both cases
-    # will be handled gracefully
-    old_loggers = :ets.match(@loggers, {:"$1", :_, remote_node, :_})
-    Enum.each(old_loggers, fn([ logger | _]) ->
-      :ets.delete(@loggers, logger)
-    end)
+    
+    # delete all loggers for this node in ets if they are not in the new list of loggers,
+    # and accumulate them in offline_loggers for new_status broadcast
+    offline_loggers = 
+      :ets.match(@loggers, {:"$1", :_, remote_node, :_})
+      |> IO.inspect()
+      |> Enum.reduce([], fn ([old_logger_id], acc) ->
+        contains_old_logger? = fn([new_logger_id, status]) -> 
+          old_logger_id == new_logger_id
+        end
+        case Enum.find(loggers, contains_old_logger?) do
+          nil ->
+            :ets.delete(@loggers, old_logger_id)
+            [[old_logger_id, remote_node, :offline] | acc]
+          _ -> acc 
+        end
+      end)
 
     # create list of online loggers for insertion
     new_loggers = case loggers do
       [] -> []
       loggers ->
-        Enum.map(loggers, fn(logger) ->
-          [id | [ status | _tail ] ] = logger
+        Enum.map(loggers, fn([id, status]) ->
           {id, nil, remote_node, status} 
         end)
     end
-
     :ets.insert(@loggers, new_loggers)
     :ets.insert(@nodes, {remote_node, endpoint_ip})
-    broadcast = %Broadcast{event: "node_up", topic: "loggers:status", payload: nil}
+
+    status = Enum.reduce(new_loggers, offline_loggers, fn({id, _, _, status}, acc) -> 
+      [[id, remote_node, status] | acc]
+    end)
+    
+    broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: status}}
     Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
     {:noreply, state}
   end

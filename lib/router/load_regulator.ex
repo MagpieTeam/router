@@ -2,9 +2,9 @@ defmodule Router.LoadRegulator do
   use GenServer
   require Logger
 
-  @max_tokens 500
+  @max_tokens 50000
   @refill_interval 1000
-  @max_refill_amount 500
+  @max_refill_amount 50000
   @normal_load 0.3
   @max_load 0.7
 
@@ -35,9 +35,9 @@ defmodule Router.LoadRegulator do
 
   def handle_info(:refill, %{tokens: tokens_now} = state) do
     load = :cpu_sup.avg1() / 256
-    Logger.info("Load: #{load}")
+    # Logger.info("Load: #{load}")
     new_tokens = calculate_tokens(load, state.slope, state.y_intercept)
-    Logger.debug("New tokens: #{new_tokens}")
+    # Logger.debug("New tokens: #{new_tokens}")
     tokens_next = tokens_now + new_tokens
     case tokens_next > @max_tokens do
       true ->
@@ -49,7 +49,7 @@ defmodule Router.LoadRegulator do
 
   defp calculate_tokens(load, slope, y_intercept) do
     new_tokens = slope * load + y_intercept
-    Logger.debug("Calculated tokens: #{new_tokens}")
+    # Logger.debug("Calculated tokens: #{new_tokens}")
     cond do
       new_tokens > @max_refill_amount -> @max_refill_amount
       new_tokens > 0 -> trunc(new_tokens)
