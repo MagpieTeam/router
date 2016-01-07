@@ -56,7 +56,7 @@ defmodule Router.Presence do
     true = :ets.insert(@loggers, {logger_id, pid, node, :online})
     # broadcast on gossip and local
     Router.Endpoint.broadcast_from(self(), "presence:gossip", "logger_up", %{id: logger_id, node: node})
-    broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [logger_id, node, :online]}}
+    broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [[logger_id, node, :online]]}}
     Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
     {:reply, :ok, state}
   end
@@ -72,7 +72,7 @@ defmodule Router.Presence do
         :ets.delete(@loggers, logger_id)
         # broadcast on gossip and local
         Router.Endpoint.broadcast_from(self(), "presence:gossip", "logger_down", %{id: logger_id, node: node})
-        broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [logger_id, node, :offline]}}
+        broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [[logger_id, node, :offline]]}}
         Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
         Process.demonitor(ref, [:flush])
         {:noreply, state}
@@ -83,7 +83,7 @@ defmodule Router.Presence do
     Logger.debug("Got remote logger_up: #{logger_id} on #{node}")
 
     true = :ets.insert(@loggers, {logger_id, nil, node, :online})
-    broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [logger_id, node, :online]}}
+    broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [[logger_id, node, :online]]}}
     Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
     {:noreply, state}
   end
@@ -92,7 +92,7 @@ defmodule Router.Presence do
     Logger.debug("Got remote logger_down: #{logger_id} on #{node}")
 
     :ets.delete(@loggers, logger_id)
-    broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [logger_id, node, :offline]}}
+    broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [[logger_id, node, :offline]]}}
     Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
     {:noreply, state}
   end
