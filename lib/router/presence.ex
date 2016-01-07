@@ -72,7 +72,7 @@ defmodule Router.Presence do
         :ets.delete(@loggers, logger_id)
         # broadcast on gossip and local
         Router.Endpoint.broadcast_from(self(), "presence:gossip", "logger_down", %{id: logger_id, name: name, node: node})
-        broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [[logger_id, name, node, :offline]]}}
+        broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [[logger_id, name, "", :offline]]}}
         Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
         Process.demonitor(ref, [:flush])
         {:noreply, state}
@@ -92,7 +92,7 @@ defmodule Router.Presence do
     Logger.debug("Got remote logger_down: #{logger_id} on #{node}")
 
     :ets.delete(@loggers, logger_id)
-    broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [[logger_id, name, node, :offline]]}}
+    broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [[logger_id, name, "", :offline]]}}
     Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
     {:noreply, state}
   end
@@ -137,7 +137,7 @@ defmodule Router.Presence do
         case Enum.find(loggers, contains_old_logger?) do
           nil ->
             :ets.delete(@loggers, old_logger_id)
-            [[old_logger_id, name, remote_node, :offline] | acc]
+            [[old_logger_id, name, "", :offline] | acc]
           _ -> acc 
         end
       end)
