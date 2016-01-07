@@ -103,7 +103,7 @@ defmodule Router.Presence do
     # Each node sends a list to the remote node containing
     # a list of loggers on the local node
     loggers = :ets.match(@loggers, {:"$1", :_, :"$2", node, :"$3"})
-    GenServer.cast({Router.Presence, remote_node}, {:loggers, loggers, node, endpoint_ip})
+    GenServer.cast({Router.Presence, remote_node}, {:current_loggers, loggers, node, endpoint_ip})
     {:noreply, state}
   end
 
@@ -122,7 +122,7 @@ defmodule Router.Presence do
     {:noreply, state}
   end
 
-  def handle_cast({:loggers, loggers, remote_node, endpoint_ip}, state) do
+  def handle_cast({:current_loggers, loggers, remote_node, endpoint_ip}, state) do
     Logger.debug("Got list of loggers from remote node: #{remote_node}: #{inspect loggers}")
     
     # delete all loggers for this node in ets if they are not in the new list of loggers,
