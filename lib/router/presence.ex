@@ -16,7 +16,7 @@ defmodule Router.Presence do
   end
 
   def get_status(logger) do
-    case :ets.match(@loggers, {logger[:id], :_, :"$1", :"$2"}) do
+    case :ets.match(@loggers, {logger[:id], :_, :_, :"$1", :"$2"}) do
       [[node, status]] -> [logger[:id], logger[:name], node, status]
       _ -> [logger[:id], logger[:name], :"", :offline]
     end
@@ -129,7 +129,6 @@ defmodule Router.Presence do
     # and accumulate them in offline_loggers for new_status broadcast
     offline_loggers = 
       :ets.match(@loggers, {:"$1", :_, :"$2", remote_node, :_})
-      |> IO.inspect()
       |> Enum.reduce([], fn ([old_logger_id, name], acc) ->
         contains_old_logger? = fn([new_logger_id, _name, _status]) -> 
           old_logger_id == new_logger_id
@@ -160,5 +159,10 @@ defmodule Router.Presence do
     broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: status}}
     Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
     {:noreply, state}
+
+    # alternative: insert all those in the loggers list as online
+    # do an ets match on all those which are still status unknown
+    # delete those who match
+    # now create a list of status updates
   end
 end
