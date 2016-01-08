@@ -23,7 +23,7 @@
         </tr>
       </thead>
       <%= for s <- @sensors do %>
-      <tr>
+      <tr class="sensor" id="<%= s[:id] %>">
         <td>
           <%= s[:id] %>
         </td>
