@@ -35,7 +35,6 @@ let Logger = {
     if (this.logging) {
       this.timestamp += 1000
       let value = Math.random() * 100
-      console.log(this.sensor_ids)
       let measurements = this.sensor_ids.map(sensor_id => {
         return {
           sensor_id: sensor_id,
