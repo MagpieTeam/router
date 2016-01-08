@@ -6,7 +6,7 @@ defmodule Router.LoadRegulator do
   @refill_interval 1000
   @max_refill_amount 50000
   @normal_load 0.3
-  @max_load 0.7
+  @max_load 100
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, :ok, opts)
