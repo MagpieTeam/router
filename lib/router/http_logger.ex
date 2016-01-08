@@ -5,8 +5,8 @@ defmodule Router.HttpLogger do
 
   @timeout 30000
 
-  def start(logger_id, opts \\ []) do
-    GenServer.start(__MODULE__, logger_id, opts)
+  def start(logger_id, name, opts \\ []) do
+    GenServer.start(__MODULE__, {logger_id, name}, opts)
   end
 
   def stop(logger_pid) do
@@ -17,7 +17,7 @@ defmodule Router.HttpLogger do
     GenServer.call(logger_pid, {:log, measurements})
   end
 
-  def init(logger_id, name) do
+  def init({logger_id, name}) do
     :ok = Router.Presence.register(logger_id, self(), name)
     sensors = Magpie.DataAccess.Sensor.get(logger_id)
     Enum.each(sensors, fn (s) -> Router.Aggregator.start_link(to_string(s[:id])) end)
