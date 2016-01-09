@@ -16,18 +16,25 @@ defmodule Router.LoggerController do
     |> render("show.html")
   end
 
-  def start(conn, params) do
-    {:ok, logger} = Magpie.DataAccess.Logger.get(params["logger_id"])
-    sensors = Magpie.DataAccess.Sensor.get(logger[:id]) |> Enum.count()
-    case Router.LoadRegulator.permit?(sensors) do
+  def start(conn, %{"logger_id" => logger_id, "password" => password}) do
+    {:ok, logger} = Magpie.DataAccess.Logger.get(logger_id)
+    case password == logger[:password] do
       true ->
-        {:ok, logger_pid} = Router.HttpLogger.start(logger[:id], logger[:name])
-        token = Phoenix.Token.sign(Router.Endpoint, "logger", logger_pid)
-        json(conn, %{token: token})
+        sensors = Magpie.DataAccess.Sensor.get(logger[:id]) |> Enum.count()
+        case Router.LoadRegulator.permit?(sensors) do
+          true ->
+            {:ok, logger_pid} = Router.HttpLogger.start(logger[:id], logger[:name])
+            token = Phoenix.Token.sign(Router.Endpoint, "logger", logger_pid)
+            json(conn, %{token: token})
+          false ->
+            conn
+            |> Plug.Conn.put_status(503)
+            |> json("request denied by load regulator")
+        end
       false ->
         conn
-        |> Plug.Conn.put_status(503)
-        |> json("request denied by load regulator")
+        |> Plug.Conn.put_status(401)
+        |> json(nil)
     end
   end
 
@@ -59,6 +66,7 @@ defmodule Router.LoggerController do
   end
 
   def configure(conn, params) do
+    # TODO: password auth
     logger_id = params["logger_id"]
     new_sensors = params["sensors"]
     {:ok, logger} = Magpie.DataAccess.Logger.get(logger_id)

@@ -16,6 +16,7 @@ defmodule Router.Presence do
   end
 
   def get_status(logger) do
+    # TODO: replace with :ets.lookup (key is known)
     case :ets.match(@loggers, {logger[:id], :_, :_, :"$1", :"$2"}) do
       [[node, status]] -> [logger[:id], logger[:name], node, status]
       _ -> [logger[:id], logger[:name], :"", :offline]
@@ -23,8 +24,6 @@ defmodule Router.Presence do
   end
 
   def connect() do
-    # TODO: connect to nodes specified in config
-    # except your own node name
     Application.get_env(:router, :nodes)
     |> Enum.each(fn(n) -> Node.connect(n) end)
   end
