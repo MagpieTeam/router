@@ -143,47 +143,8 @@ defmodule Router.Presence do
 
   def handle_cast({:current_loggers, loggers, remote_node, endpoint_ip}, state) do
     Logger.info("Got list of loggers from remote node: #{remote_node}: #{inspect loggers}")
-    
-    # delete all loggers for this node in ets if they are not in the new list of loggers,
-    # and accumulate them in offline_loggers for new_status broadcast
-    # offline_loggers = 
-    #   :ets.match(@loggers, {:"$1", :_, :"$2", remote_node, :_})
-    #   |> Enum.reduce([], fn ([old_logger_id, name], acc) ->
-    #     contains_old_logger? = fn([new_logger_id, _name, _status]) -> 
-    #       old_logger_id == new_logger_id
-    #     end
-    #     case Enum.find(loggers, contains_old_logger?) do
-    #       nil ->
-    #         :ets.delete(@loggers, old_logger_id)
-    #         [[old_logger_id, name, "", :offline] | acc]
-    #       _ -> acc 
-    #     end
-    #   end)
 
-    # # create list of online loggers for insertion
-    # new_loggers = case loggers do
-    #   [] -> []
-    #   loggers ->
-    #     Enum.map(loggers, fn([id, name, status]) ->
-    #       {id, nil, name, remote_node, status} 
-    #     end)
-    # end
-    # :ets.insert(@loggers, new_loggers)
-    # :ets.insert(@nodes, {remote_node, endpoint_ip})
-
-    # status = Enum.reduce(new_loggers, offline_loggers, fn({id, _, name, _, status}, acc) -> 
-    #   [[id, name, remote_node, status] | acc]
-    # end)
-    
-    # broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: status}}
-    # Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
-    # {:noreply, state}
-
-    # alternative: insert all those in the loggers list as online
-    # do an ets match on all those which are still status unknown
-    # delete those who match
-    # now create a list of status updates
-
+    # Make a list of all the online loggers to insert
     new_loggers = case loggers do
       [] -> []
       loggers ->
@@ -191,9 +152,9 @@ defmodule Router.Presence do
           {id, nil, name, remote_node, status} 
         end)
     end
-    Logger.debug("inserting #{inspect new_loggers}")
     :ets.insert(@loggers, new_loggers)
 
+    # Delete all those loggers still listed as unknown and return a list to use for new_status message
     offline_loggers = 
       :ets.match(@loggers, {:"$1", :_, :"$2", remote_node, :unknown})
       |> Enum.reduce([], fn ([old_logger_id, name], acc) ->
