@@ -11,23 +11,6 @@ defmodule Router.Presence do
     GenServer.start_link(__MODULE__, :ok, opts)
   end
 
-  def register(logger_id, pid, name) do
-    GenServer.call(Router.Presence, {:register, logger_id, pid, name})
-  end
-
-  def get_status(logger) do
-    # TODO: replace with :ets.lookup (key is known)
-    case :ets.match(@loggers, {logger[:id], :_, :_, :"$1", :"$2"}) do
-      [[node, status]] -> [logger[:id], logger[:name], node, status]
-      _ -> [logger[:id], logger[:name], :"", :offline]
-    end
-  end
-
-  def connect() do
-    Application.get_env(:router, :nodes)
-    |> Enum.each(fn(n) -> Node.connect(n) end)
-  end
-
   def init(:ok) do
     :ets.new(@loggers, [:named_table, :set, :protected])
     :ets.new(@nodes, [:named_table, :set, :protected])
@@ -46,14 +29,30 @@ defmodule Router.Presence do
     {:ok, %{node: node, endpoint_ip: endpoint_ip}}
   end
 
+  def register(logger_id, pid, name) do
+    GenServer.call(Router.Presence, {:register, logger_id, pid, name})
+  end
+
+  def get_status(logger) do
+    case :ets.lookup(@loggers, logger[:id]) do
+      [{_id, _pid, _name, node, status}] -> [logger[:id], logger[:name], node, status]
+      _ -> [logger[:id], logger[:name], :"", :offline]
+    end
+  end
+
+  defp connect() do
+    Application.get_env(:router, :nodes)
+    |> Enum.each(fn(n) -> Node.connect(n) end)
+  end
+
   defp to_port(port) when is_binary(port), do: port
   defp to_port({:system, env_var}), do: to_port(System.get_env(env_var))
 
   def handle_call({:register, logger_id, pid, name} = msg, _from, %{node: node} = state) do
-    Logger.debug("Got loggerup #{inspect msg}")
+    Logger.info("Got loggerup #{inspect msg}")
+
     Process.monitor(pid)
     true = :ets.insert(@loggers, {logger_id, pid, name, node, :online})
-    # broadcast on gossip and local
     Router.Endpoint.broadcast_from(self(), "presence:gossip", "logger_up", %{id: logger_id, name: name, node: node})
     broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [[logger_id, name, node, :online]]}}
     Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
@@ -61,15 +60,19 @@ defmodule Router.Presence do
   end
 
   def handle_info({:DOWN, ref, _type, pid, {_info, reason}} = msg, %{node: node} = state) do
-    # logger down, remove
-    Logger.debug("Got :DOWN #{inspect msg}")
-    # TODO: If ets returns nil, this is gonna crash. Please fix
+    Logger.info("Got local logger :DOWN #{inspect msg}")
+
+    # Potential race condition
+    # If this logger has already gone online again, and we have already received that message
+    # and thus marked the logger as online, we should not do anything when receiving a :DOWN message.
+    # By matching on pid and node we make sure it's actually marked as being online on this node
+    # before removing it and before broadcasting it as being offline.
+    # Also, we don't know the logger_id, and thus have to use a match!
     case :ets.match(@loggers, {:"$1", pid, :"$2", node, :_}) do
-      nil -> 
+      [] -> 
         {:noreply, state}
       [[logger_id, name]] -> 
         :ets.delete(@loggers, logger_id)
-        # broadcast on gossip and local
         Router.Endpoint.broadcast_from(self(), "presence:gossip", "logger_down", %{id: logger_id, name: name, node: node})
         broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [[logger_id, name, "", :offline]]}}
         Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
@@ -79,7 +82,7 @@ defmodule Router.Presence do
   end
 
   def handle_info(%Broadcast{event: "logger_up", payload: %{id: logger_id, name: name, node: node}}, state) do
-    Logger.debug("Got remote logger_up: #{logger_id} on #{node}")
+    Logger.info("Got remote logger_up: #{logger_id} on #{node}")
 
     true = :ets.insert(@loggers, {logger_id, nil, name, node, :online})
     broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [[logger_id, name, node, :online]]}}
@@ -87,34 +90,51 @@ defmodule Router.Presence do
     {:noreply, state}
   end
 
-  def handle_info(%Broadcast{event: "logger_down", payload: %{id: logger_id, name: name, node: node}}, state) do
-    Logger.debug("Got remote logger_down: #{logger_id} on #{node}")
+  def handle_info(%Broadcast{event: "logger_down", payload: %{id: logger_id, name: name, node: remote_node}}, state) do
+    Logger.info("Got remote logger_down: #{logger_id} on #{remote_node}")
 
-    :ets.delete(@loggers, logger_id)
-    broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [[logger_id, name, "", :offline]]}}
-    Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
-    {:noreply, state}
+    # Potential race condition
+    # As in the case of a local logger going :DOWN, this signal could be received 
+    # after we have received a message that the logger has gone online on another
+    # node. To avoid this, we pin the name of the remote node when we pattern match
+    # on the return value from ets.lookup, so it will only match if it is stored in
+    # ets as online on the remote node.
+    # There is no potential for a race condition if the logger went online again on
+    # the node that broadcasted the logger_down message. Erlang guarantees that if process
+    # A sends messages X and Y in that order, process B will always receive X before Y. 
+    # Thus we will always receive logger_down messages before logger_up messages if 
+    # the logger comes online on the same node it disconnected from
+    case :ets.lookup(@loggers, logger_id) do
+      [{_id, _pid, name, ^remote_node, _status}] ->
+        :ets.delete(@loggers, logger_id)
+        broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [[logger_id, name, "", :offline]]}}
+        Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
+        {:noreply, state}
+      [] ->
+        {:noreply, state}
+    end
   end
 
   def handle_info({:nodeup, remote_node} = msg, %{node: node, endpoint_ip: endpoint_ip} = state) do
-    Logger.debug("Got remote node up: #{remote_node}")
-    # When two nodes connect, both receive this message
-    # Each node sends a list to the remote node containing
-    # a list of loggers on the local node
+    Logger.info("Got remote node up: #{remote_node}")
+    # When a new node joins a cluster, all nodes in the cluster receive a :nodeup message
+    # from the new node, and the new node receives :nodeup messages from all the other nodes
+    # Upon receiving a :nodeup signal from remote_node, each node prepares a list all loggers
+    # currently connected to the local node. This list is then sent to the remote node.
     loggers = :ets.match(@loggers, {:"$1", :_, :"$2", node, :"$3"})
     GenServer.cast({Router.Presence, remote_node}, {:current_loggers, loggers, node, endpoint_ip})
     {:noreply, state}
   end
 
-  def handle_info({:nodedown, node} = msg, state) do
-    Logger.debug("Got remote node down: #{node}")
+  def handle_info({:nodedown, remote_node} = msg, state) do
+    Logger.info("Got remote node down: #{remote_node}")
 
-    logger_ids = :ets.match(@loggers, {:"$1", :_, :"$2", node, :_})
-    loggers = Enum.map(logger_ids, fn([logger_id, name]) -> {logger_id, nil, name, node, :unknown} end)
-    :ets.insert(@loggers, loggers)
-    :ets.delete(@nodes, node)
+    loggers = :ets.match(@loggers, {:"$1", :_, :"$2", remote_node, :_})
+    loggers_unknown = Enum.map(loggers, fn([logger_id, name]) -> {logger_id, nil, name, remote_node, :unknown} end)
+    :ets.insert(@loggers, loggers_unknown)
+    :ets.delete(@nodes, remote_node)
 
-    status = Enum.map(logger_ids, fn([logger_id, name]) -> [logger_id, name, node, :unknown] end)
+    status = Enum.map(loggers, fn([logger_id, name]) -> [logger_id, name, node, :unknown] end)
 
     broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: status}}
     Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
@@ -122,25 +142,48 @@ defmodule Router.Presence do
   end
 
   def handle_cast({:current_loggers, loggers, remote_node, endpoint_ip}, state) do
-    Logger.debug("Got list of loggers from remote node: #{remote_node}: #{inspect loggers}")
+    Logger.info("Got list of loggers from remote node: #{remote_node}: #{inspect loggers}")
     
     # delete all loggers for this node in ets if they are not in the new list of loggers,
     # and accumulate them in offline_loggers for new_status broadcast
-    offline_loggers = 
-      :ets.match(@loggers, {:"$1", :_, :"$2", remote_node, :_})
-      |> Enum.reduce([], fn ([old_logger_id, name], acc) ->
-        contains_old_logger? = fn([new_logger_id, _name, _status]) -> 
-          old_logger_id == new_logger_id
-        end
-        case Enum.find(loggers, contains_old_logger?) do
-          nil ->
-            :ets.delete(@loggers, old_logger_id)
-            [[old_logger_id, name, "", :offline] | acc]
-          _ -> acc 
-        end
-      end)
+    # offline_loggers = 
+    #   :ets.match(@loggers, {:"$1", :_, :"$2", remote_node, :_})
+    #   |> Enum.reduce([], fn ([old_logger_id, name], acc) ->
+    #     contains_old_logger? = fn([new_logger_id, _name, _status]) -> 
+    #       old_logger_id == new_logger_id
+    #     end
+    #     case Enum.find(loggers, contains_old_logger?) do
+    #       nil ->
+    #         :ets.delete(@loggers, old_logger_id)
+    #         [[old_logger_id, name, "", :offline] | acc]
+    #       _ -> acc 
+    #     end
+    #   end)
 
-    # create list of online loggers for insertion
+    # # create list of online loggers for insertion
+    # new_loggers = case loggers do
+    #   [] -> []
+    #   loggers ->
+    #     Enum.map(loggers, fn([id, name, status]) ->
+    #       {id, nil, name, remote_node, status} 
+    #     end)
+    # end
+    # :ets.insert(@loggers, new_loggers)
+    # :ets.insert(@nodes, {remote_node, endpoint_ip})
+
+    # status = Enum.reduce(new_loggers, offline_loggers, fn({id, _, name, _, status}, acc) -> 
+    #   [[id, name, remote_node, status] | acc]
+    # end)
+    
+    # broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: status}}
+    # Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
+    # {:noreply, state}
+
+    # alternative: insert all those in the loggers list as online
+    # do an ets match on all those which are still status unknown
+    # delete those who match
+    # now create a list of status updates
+
     new_loggers = case loggers do
       [] -> []
       loggers ->
@@ -148,20 +191,22 @@ defmodule Router.Presence do
           {id, nil, name, remote_node, status} 
         end)
     end
+    Logger.debug("inserting #{inspect new_loggers}")
     :ets.insert(@loggers, new_loggers)
-    :ets.insert(@nodes, {remote_node, endpoint_ip})
 
-    status = Enum.reduce(new_loggers, offline_loggers, fn({id, _, name, _, status}, acc) -> 
+    offline_loggers = 
+      :ets.match(@loggers, {:"$1", :_, :"$2", remote_node, :unknown})
+      |> Enum.reduce([], fn ([old_logger_id, name], acc) ->
+        :ets.delete(@loggers, old_logger_id)
+        [[old_logger_id, name, "", :offline] | acc]
+      end)
+
+    status = Enum.reduce(new_loggers, offline_loggers, fn({id, _pid, name, _node, status}, acc) -> 
       [[id, name, remote_node, status] | acc]
     end)
     
     broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: status}}
     Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
     {:noreply, state}
-
-    # alternative: insert all those in the loggers list as online
-    # do an ets match on all those which are still status unknown
-    # delete those who match
-    # now create a list of status updates
   end
 end
