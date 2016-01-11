@@ -115,17 +115,6 @@ defmodule Router.Presence do
     end
   end
 
-  def handle_info({:nodeup, remote_node} = msg, %{node: node, endpoint_ip: endpoint_ip} = state) do
-    Logger.info("Got remote node up: #{remote_node}")
-    # When a new node joins a cluster, all nodes in the cluster receive a :nodeup message
-    # from the new node, and the new node receives :nodeup messages from all the other nodes
-    # Upon receiving a :nodeup signal from remote_node, each node prepares a list all loggers
-    # currently connected to the local node. This list is then sent to the remote node.
-    loggers = :ets.match(@loggers, {:"$1", :_, :"$2", node, :"$3"})
-    GenServer.cast({Router.Presence, remote_node}, {:current_loggers, loggers, node, endpoint_ip})
-    {:noreply, state}
-  end
-
   def handle_info({:nodedown, remote_node} = msg, state) do
     Logger.info("Got remote node down: #{remote_node}")
 
@@ -141,28 +130,39 @@ defmodule Router.Presence do
     {:noreply, state}
   end
 
+  def handle_info({:nodeup, remote_node} = msg, %{node: node, endpoint_ip: endpoint_ip} = state) do
+    Logger.info("Got remote node up: #{remote_node}")
+    # When a new node joins a cluster, all nodes in the cluster receive a :nodeup message
+    # from the new node, and the new node receives :nodeup messages from all the other nodes
+    # Upon receiving a :nodeup signal from remote_node, each node prepares a list all loggers
+    # currently connected to the local node. This list is then sent to the remote node.
+    loggers = :ets.match(@loggers, {:"$1", :_, :"$2", node, :"$3"})
+    GenServer.cast({Router.Presence, remote_node}, {:current_loggers, loggers, node, endpoint_ip})
+    {:noreply, state}
+  end
+
   def handle_cast({:current_loggers, loggers, remote_node, endpoint_ip}, state) do
     Logger.info("Got list of loggers from remote node: #{remote_node}: #{inspect loggers}")
 
     # Make a list of all the online loggers to insert
-    new_loggers = case loggers do
+    current_loggers = case loggers do
       [] -> []
       loggers ->
         Enum.map(loggers, fn([id, name, status]) ->
           {id, nil, name, remote_node, status} 
         end)
     end
-    :ets.insert(@loggers, new_loggers)
+    :ets.insert(@loggers, current_loggers)
 
     # Delete all those loggers still listed as unknown and return a list to use for new_status message
     offline_loggers = 
       :ets.match(@loggers, {:"$1", :_, :"$2", remote_node, :unknown})
-      |> Enum.reduce([], fn ([old_logger_id, name], acc) ->
+      |> Enum.map(fn([old_logger_id, name], acc) ->
         :ets.delete(@loggers, old_logger_id)
-        [[old_logger_id, name, "", :offline] | acc]
+        [old_logger_id, name, "", :offline]
       end)
 
-    status = Enum.reduce(new_loggers, offline_loggers, fn({id, _pid, name, _node, status}, acc) -> 
+    status = Enum.reduce(current_loggers, offline_loggers, fn({id, _pid, name, _node, status}, acc) -> 
       [[id, name, remote_node, status] | acc]
     end)
     

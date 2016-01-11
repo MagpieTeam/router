@@ -9,14 +9,10 @@ defmodule Router do
     children = [
       # Start the endpoint when the application starts
       supervisor(Router.Endpoint, []),
-      # Here you could define other workers and supervisors as children
-      # worker(Router.Worker, [arg1, arg2, arg3]),
       worker(Router.Presence, [[name: Router.Presence]]),
       worker(Router.LoadRegulator, [[name: Router.LoadRegulator]])
     ]
 
-    # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
-    # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Router.Supervisor]
     Supervisor.start_link(children, opts)
   end
