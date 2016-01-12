@@ -8,7 +8,7 @@
   "hackney": {:hex, :hackney, "1.4.8"},
   "idna": {:hex, :idna, "1.0.3"},
   "lz4": {:git, "https://github.com/szktty/erlang-lz4.git", "30878eafeff35939052c2cafe17d21c95029d3a1", []},
-  "magpie": {:git, "https://github.com/magpieteam/magpie.git", "124de3eadab14df1bf1db792d9cffaed5c96cef0", []},
+  "magpie": {:git, "https://github.com/magpieteam/magpie.git", "10b2063cbc0a6134b11ca85aa733b23095be0b29", []},
   "mimerl": {:hex, :mimerl, "1.0.2"},
   "phoenix": {:hex, :phoenix, "1.0.4"},
   "phoenix_html": {:hex, :phoenix_html, "2.3.0"},

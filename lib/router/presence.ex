@@ -142,7 +142,7 @@ defmodule Router.Presence do
     {:noreply, state}
   end
 
-  def handle_cast({:loggers, loggers, remote_node, endpoint_ip}, state) do
+  def handle_cast({:loggers, loggers, remote_node, remote_endpoint_ip}, state) do
     Logger.info("Got list of loggers from remote node: #{remote_node}: #{inspect loggers}")
 
     # Make a list of all the online loggers to insert
@@ -154,6 +154,7 @@ defmodule Router.Presence do
         end)
     end
     :ets.insert(@loggers, current_loggers)
+    :ets.insert(@nodes, {remote_node, remote_endpoint_ip})
 
     # Delete all those loggers still listed as unknown and return a list to use for new_status message
     offline_loggers = 
