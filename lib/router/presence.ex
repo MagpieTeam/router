@@ -33,6 +33,17 @@ defmodule Router.Presence do
     GenServer.call(Router.Presence, {:register, logger_id, pid, name})
   end
 
+  def handle_call({:register, logger_id, pid, name} = msg, _from, %{node: node} = state) do
+    Logger.info("Got loggerup #{inspect msg}")
+
+    Process.monitor(pid)
+    true = :ets.insert(@loggers, {logger_id, pid, name, node, :online})
+    Router.Endpoint.broadcast_from(self(), "presence:gossip", "logger_up", %{id: logger_id, name: name, node: node})
+    broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [[logger_id, name, node, :online]]}}
+    Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
+    {:reply, :ok, state}
+  end
+
   def get_status(logger) do
     case :ets.lookup(@loggers, logger[:id]) do
       [{_id, _pid, _name, node, status}] -> [logger[:id], logger[:name], node, status]
@@ -47,17 +58,6 @@ defmodule Router.Presence do
 
   defp to_port(port) when is_binary(port), do: port
   defp to_port({:system, env_var}), do: to_port(System.get_env(env_var))
-
-  def handle_call({:register, logger_id, pid, name} = msg, _from, %{node: node} = state) do
-    Logger.info("Got loggerup #{inspect msg}")
-
-    Process.monitor(pid)
-    true = :ets.insert(@loggers, {logger_id, pid, name, node, :online})
-    Router.Endpoint.broadcast_from(self(), "presence:gossip", "logger_up", %{id: logger_id, name: name, node: node})
-    broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [[logger_id, name, node, :online]]}}
-    Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
-    {:reply, :ok, state}
-  end
 
   def handle_info({:DOWN, ref, _type, pid, {_info, reason}} = msg, %{node: node} = state) do
     Logger.info("Got local logger :DOWN #{inspect msg}")
@@ -74,7 +74,8 @@ defmodule Router.Presence do
       [[logger_id, name]] -> 
         :ets.delete(@loggers, logger_id)
         Router.Endpoint.broadcast_from(self(), "presence:gossip", "logger_down", %{id: logger_id, name: name, node: node})
-        broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: [[logger_id, name, "", :offline]]}}
+        payload = %{status: [[logger_id, name, "", :offline]]}
+        broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: payload}
         Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
         Process.demonitor(ref, [:flush])
         {:noreply, state}
@@ -136,12 +137,12 @@ defmodule Router.Presence do
     # from the new node, and the new node receives :nodeup messages from all the other nodes
     # Upon receiving a :nodeup signal from remote_node, each node prepares a list all loggers
     # currently connected to the local node. This list is then sent to the remote node.
-    loggers = :ets.match(@loggers, {:"$1", :_, :"$2", node, :"$3"})
-    GenServer.cast({Router.Presence, remote_node}, {:current_loggers, loggers, node, endpoint_ip})
+    current_loggers = :ets.match(@loggers, {:"$1", :_, :"$2", node, :"$3"})
+    GenServer.cast({Router.Presence, remote_node}, {:loggers, current_loggers, node, endpoint_ip})
     {:noreply, state}
   end
 
-  def handle_cast({:current_loggers, loggers, remote_node, endpoint_ip}, state) do
+  def handle_cast({:loggers, loggers, remote_node, endpoint_ip}, state) do
     Logger.info("Got list of loggers from remote node: #{remote_node}: #{inspect loggers}")
 
     # Make a list of all the online loggers to insert

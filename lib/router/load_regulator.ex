@@ -2,11 +2,11 @@ defmodule Router.LoadRegulator do
   use GenServer
   require Logger
 
-  @max_tokens 50000
+  @max_tokens 500
   @refill_interval 1000
-  @max_refill_amount 50000
+  @max_refill_amount 200
   @normal_load 0.3
-  @max_load 100
+  @max_load 0.7
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, :ok, opts)
@@ -34,10 +34,12 @@ defmodule Router.LoadRegulator do
   end
 
   def handle_info(:refill, %{tokens: tokens_now} = state) do
-    load = :cpu_sup.avg1() / 256
-    # Logger.info("Load: #{load}")
+    # Calculate a load average between 0 and 1, accounting
+    # for the number of CPU cores.
+    load = :cpu_sup.avg1() / 256 / :erlang.system_info(:schedulers_online)
+    Logger.debug("Load: #{load}")
     new_tokens = calculate_tokens(load, state.slope, state.y_intercept)
-    # Logger.debug("New tokens: #{new_tokens}")
+    Logger.debug("New tokens: #{new_tokens}")
     tokens_next = tokens_now + new_tokens
     case tokens_next > @max_tokens do
       true ->
