@@ -41,7 +41,7 @@ config :router, Router.Repo,
   hostname: "localhost",
   pool_size: 10
 
-config :router, nodes: [:"n1@euron", :"n2@euron", :"n3@euron"]
+config :router, nodes: [:"r1@euron", :"r2@euron", :"r3@euron"]
 
 config :cqerl,
   cassandra_nodes: [{{192, 168, 33, 10}, 9042}],
