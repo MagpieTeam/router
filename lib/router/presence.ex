@@ -124,7 +124,7 @@ defmodule Router.Presence do
     :ets.insert(@loggers, loggers_unknown)
     :ets.delete(@nodes, remote_node)
 
-    status = Enum.map(loggers, fn([logger_id, name]) -> [logger_id, name, node, :unknown] end)
+    status = Enum.map(loggers, fn([logger_id, name]) -> [logger_id, name, remote_node, :unknown] end)
 
     broadcast = %Broadcast{event: "new_status", topic: "loggers:status", payload: %{status: status}}
     Phoenix.PubSub.Local.broadcast(Router.PubSub.Local, self(), "loggers:status", broadcast)
@@ -153,7 +153,7 @@ defmodule Router.Presence do
           {id, nil, name, remote_node, status} 
         end)
     end
-    :ets.insert(@loggers, current_loggers)
+    if current_loggers != [], do: :ets.insert(@loggers, current_loggers)
     :ets.insert(@nodes, {remote_node, remote_endpoint_ip})
 
     # Delete all those loggers still listed as unknown and return a list to use for new_status message
