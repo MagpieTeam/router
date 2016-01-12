@@ -155,11 +155,11 @@ defmodule Router.Presence do
     end
     if current_loggers != [], do: :ets.insert(@loggers, current_loggers)
     :ets.insert(@nodes, {remote_node, remote_endpoint_ip})
-
+    
     # Delete all those loggers still listed as unknown and return a list to use for new_status message
     offline_loggers = 
       :ets.match(@loggers, {:"$1", :_, :"$2", remote_node, :unknown})
-      |> Enum.map(fn([old_logger_id, name], acc) ->
+      |> Enum.map(fn([old_logger_id, name]) ->
         :ets.delete(@loggers, old_logger_id)
         [old_logger_id, name, "", :offline]
       end)
